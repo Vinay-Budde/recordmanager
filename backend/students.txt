@@ -1,0 +1,3 @@
+1,vinay,CSE,English:89|Chemistry:56|Computer Science:46|Math:78|Physics:67
+2,Nitish,CSE,English:78|Chemistry:47|Computer Science:68|Math:68|Physics:82
+0,pawan,ECE,English:99|Chemistry:56|Computer Science:48|Math:77|Physics:79
