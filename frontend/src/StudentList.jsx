@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import { TrashIcon, PencilSquareIcon, ArrowsUpDownIcon, ArrowDownTrayIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-const API_URL = 'http://localhost:8080/api/students';
+const API_URL = 'http://localhost:5000/api/students';
 
 // Helper to extract all unique subjects from student data
 const getAllSubjects = (students) => {

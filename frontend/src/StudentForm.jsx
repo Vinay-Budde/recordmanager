@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-const API_URL = 'http://localhost:8080/api/students';
+const API_URL = 'http://localhost:5000/api/students';
 
 export default function StudentForm({ selectedStudent, onSuccess, onCancel }) {
     const [formData, setFormData] = useState({

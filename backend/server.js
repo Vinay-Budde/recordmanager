@@ -1,24 +1,22 @@
-const express = require('express');
-const mongoose = require('mongoose');
+require("dotenv").config();
+const express = require("express");
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const connectDB = require("./config/db");
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // Models
 const User = require('./models/User');
 const Student = require('./models/Student');
 
 const app = express();
-const PORT = 8080;
+
+// Connect Database
+connectDB();
 
 app.use(cors());
-app.use(bodyParser.json());
-
-// MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/edumanager', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error(err));
+app.use(express.json()); // Same as bodyParser.json() which express.json() replaces in newer versions
 
 // --- Auth Routes ---
 
@@ -39,7 +37,11 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        const user = await User.findOne({ username, password }); // In real app, compare hash
+        // Allow login with Username or Email
+        const user = await User.findOne({
+            $or: [{ username }, { email: username }],
+            password
+        }); // In real app, compare hash
         if (user) {
             res.json({ message: 'Login successful', user: { name: user.username, email: user.email, role: user.role } });
         } else {
@@ -47,6 +49,80 @@ app.post('/api/auth/login', async (req, res) => {
         }
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Forgot Password
+// Reset Password (Direct)
+app.post('/api/auth/reset-password-direct', async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) return res.status(404).json({ error: "User not found with that email" });
+
+        user.password = newPassword; // In real app: hash it
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({ message: "Password updated successfully" });
+
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+// Reset Password
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) return res.status(400).json({ error: "Password reset token is invalid or has expired" });
+
+        user.password = newPassword; // In real app: hash it
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({ message: "Password updated successfully" });
+    } catch (err) {
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
+// Update Profile
+app.put('/api/auth/profile/:currentUsername', async (req, res) => {
+    try {
+        const { currentUsername } = req.params;
+        const { username, email } = req.body;
+
+        // Check if new username/email exists (if changed)
+        if (username !== currentUsername) {
+            const exists = await User.findOne({ username });
+            if (exists) return res.status(400).json({ error: "Username already taken" });
+        }
+
+        const user = await User.findOneAndUpdate(
+            { username: currentUsername },
+            { username, email },
+            { new: true }
+        );
+
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        res.json({ message: "Profile updated", user: { name: user.username, email: user.email, role: user.role } });
+    } catch (err) {
+        // Handle duplicate key error (e.g., email)
+        if (err.code === 11000) {
+            return res.status(400).json({ error: "Email already in use" });
+        }
+        res.status(500).json({ error: "Server error" });
     }
 });
 
@@ -91,7 +167,20 @@ app.put('/api/students/:rollNumber', async (req, res) => {
     }
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Node Server started on port ${PORT}`);
+// Delete Student
+app.delete('/api/students/:rollNumber', async (req, res) => {
+    try {
+        const { rollNumber } = req.params;
+        const deleted = await Student.findOneAndDelete({ rollNumber });
+        if (deleted) res.json({ message: "Student deleted" });
+        else res.status(404).json({ error: "Student not found" });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
 });
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () =>
+    console.log(`Server running on port ${PORT}`)
+);

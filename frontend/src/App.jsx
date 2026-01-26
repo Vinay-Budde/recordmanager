@@ -4,14 +4,38 @@ import StudentForm from './StudentForm';
 import StudentList from './StudentList';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
+import ForgotPasswordPage from './ForgotPasswordPage';
+import ResetPasswordPage from './ResetPasswordPage';
+import LandingPage from './LandingPage';
 import Settings from './Settings';
 
-const API_URL = 'http://localhost:8080/api/students';
+const API_URL = 'http://localhost:5000/api/students';
 
 function App() {
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('user');
+  });
+  const [showLanding, setShowLanding] = useState(() => {
+    return !localStorage.getItem('user');
+  });
+
+  const [authMode, setAuthMode] = useState('login'); // 'login', 'register', 'forgot'
+  const [resetToken, setResetToken] = useState(null);
+
+  const [isResetPage, setIsResetPage] = useState(false);
+
+  useEffect(() => {
+    // Check for reset password URL
+    const path = window.location.pathname;
+    if (path.includes('reset-password')) {
+      setIsResetPage(true);
+      if (path.startsWith('/reset-password/')) {
+        const token = path.split('/')[2];
+        if (token) setResetToken(token);
+      }
+    }
+  }, []);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [students, setStudents] = useState([]);
@@ -22,8 +46,37 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
 
   // Admin Profile State
-  const [adminProfile, setAdminProfile] = useState({ name: '', email: '', role: '' });
+  const [adminProfile, setAdminProfile] = useState(() => {
+    const stored = localStorage.getItem('user');
+    try {
+      return stored ? JSON.parse(stored) : { name: '', email: '', role: '' };
+    } catch {
+      return { name: '', email: '', role: '' };
+    }
+  });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState({ name: '', email: '' });
+
+  // Initialize edit form when entering edit mode
+  useEffect(() => {
+    if (isEditingProfile) {
+      setEditFormData({ name: adminProfile.name, email: adminProfile.email });
+    }
+  }, [isEditingProfile, adminProfile]);
+
+  const handleSaveProfile = async () => {
+    try {
+      const res = await axios.put(`http://localhost:5000/api/auth/profile/${adminProfile.name}`, {
+        username: editFormData.name,
+        email: editFormData.email
+      });
+      setAdminProfile(res.data.user);
+      setIsEditingProfile(false);
+      alert("Profile updated successfully!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to update profile");
+    }
+  };
 
   // Load students only if authenticated
   const fetchStudents = async () => {
@@ -44,15 +97,18 @@ function App() {
   const handleLogin = (user) => {
     setIsAuthenticated(true);
     if (user) {
-      setAdminProfile({
+      const profile = {
         name: user.name || 'Admin',
         email: user.email || 'admin@edu.com',
         role: user.role || 'Admin'
-      });
+      };
+      setAdminProfile(profile);
+      localStorage.setItem('user', JSON.stringify(profile));
     }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('user');
     setIsAuthenticated(false);
     setActiveTab('dashboard');
   };
@@ -71,16 +127,32 @@ function App() {
 
   // --- Render Layout ---
 
+  if (showLanding) {
+    return <LandingPage onFinish={() => {
+      setShowLanding(false);
+    }} />;
+  }
+
+  // --- Render Layout ---
+
+  if (isResetPage) {
+    return <ResetPasswordPage token={resetToken} onUpdated={() => { setResetToken(null); setIsResetPage(false); window.history.pushState({}, '', '/'); setAuthMode('login'); }} />;
+  }
+
   if (!isAuthenticated) {
-    if (showRegister) {
+    if (authMode === 'register') {
       return <RegisterPage
-        onRegisterSuccess={() => { setShowRegister(false); alert("Registration Successful! Please Login."); }}
-        onSwitchToLogin={() => setShowRegister(false)}
+        onRegisterSuccess={() => { setAuthMode('login'); alert("Registration Successful! Please Login."); }}
+        onSwitchToLogin={() => setAuthMode('login')}
       />;
+    }
+    if (authMode === 'forgot') {
+      return <ForgotPasswordPage onBackToLogin={() => setAuthMode('login')} />;
     }
     return <LoginPage
       onLogin={handleLogin}
-      onSwitchToRegister={() => setShowRegister(true)}
+      onSwitchToRegister={() => setAuthMode('register')}
+      onForgot={() => setAuthMode('forgot')}
     />;
   }
 
@@ -155,26 +227,56 @@ function App() {
             <div className="relative flex justify-between items-end -mt-12 mb-6">
               <div className="h-24 w-24 rounded-full bg-white p-1 ring-4 ring-white">
                 <div className="h-full w-full rounded-full bg-indigo-500 flex items-center justify-center text-3xl text-white font-bold">
-                  {adminProfile.name.charAt(0)}
+                  {adminProfile.name ? adminProfile.name.charAt(0) : 'A'}
                 </div>
               </div>
-              <button
-                onClick={() => setIsEditingProfile(!isEditingProfile)}
-                className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-md font-medium text-sm hover:bg-indigo-100 transition-colors"
-              >
-                {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-              </button>
+              <div className="flex space-x-3">
+                {isEditingProfile && (
+                  <button
+                    onClick={handleSaveProfile}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md font-medium text-sm hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    Save
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsEditingProfile(!isEditingProfile)}
+                  className={`px-4 py-2 rounded-md font-medium text-sm transition-colors shadow-sm ${isEditingProfile ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'}`}
+                >
+                  {isEditingProfile ? 'Cancel' : 'Edit Profile'}
+                </button>
+              </div>
             </div>
 
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{adminProfile.name}</h2>
-              <p className="text-gray-500">{adminProfile.role}</p>
+              {isEditingProfile ? (
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="block w-full text-2xl font-bold text-gray-900 border-b-2 border-indigo-500 focus:outline-none px-1 py-1"
+                  placeholder="Username"
+                />
+              ) : (
+                <h2 className="text-2xl font-bold text-gray-900">{adminProfile.name}</h2>
+              )}
+              <p className="text-gray-500 mt-1">{adminProfile.role}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-100 pt-6">
               <div>
                 <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Email</label>
-                <p className="text-gray-700 font-medium">{adminProfile.email}</p>
+                {isEditingProfile ? (
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="block w-full font-medium text-gray-900 border-b-2 border-indigo-500 focus:outline-none px-1 py-1"
+                    placeholder="Email Address"
+                  />
+                ) : (
+                  <p className="text-gray-700 font-medium">{adminProfile.email}</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1">Status</label>
