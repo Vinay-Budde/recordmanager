@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/solid';
 
-const API_URL = 'http://localhost:5000/api/auth/reset-password-direct';
+import { API_BASE_URL } from './config';
+
+const API_URL = `${API_BASE_URL}/auth/reset-password-direct`;
 
 export default function ForgotPasswordPage({ onBackToLogin }) {
     const [email, setEmail] = useState('');

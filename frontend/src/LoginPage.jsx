@@ -3,7 +3,9 @@ import axios from 'axios';
 import { LockClosedIcon, UserIcon, AcademicCapIcon, ChartBarIcon, ShieldCheckIcon, ClipboardDocumentCheckIcon } from '@heroicons/react/24/solid';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
-const API_URL = 'http://localhost:5000/api/auth/login';
+import { API_BASE_URL } from './config';
+
+const API_URL = `${API_BASE_URL}/auth/login`;
 
 export default function LoginPage({ onLogin, onSwitchToRegister, onForgot }) {
     const [username, setUsername] = useState('');

@@ -9,7 +9,9 @@ import ResetPasswordPage from './ResetPasswordPage';
 import LandingPage from './LandingPage';
 import Settings from './Settings';
 
-const API_URL = 'http://localhost:5000/api/students';
+import { API_BASE_URL } from './config';
+
+const API_URL = `${API_BASE_URL}/students`;
 
 // Helper to calculate percentage and grade
 const calculateStats = (marks) => {
@@ -86,7 +88,7 @@ function App() {
 
   const handleSaveProfile = async () => {
     try {
-      const res = await axios.put(`http://localhost:5000/api/auth/profile/${adminProfile.name}`, {
+      const res = await axios.put(`${API_BASE_URL}/auth/profile/${adminProfile.name}`, {
         username: editFormData.name,
         email: editFormData.email
       });

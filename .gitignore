@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Database
+mongodb_data/
+
+# Environment variables
+.env
+
+# Build outputs
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
