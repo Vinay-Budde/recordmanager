@@ -138,6 +138,29 @@ app.get('/api/students', async (req, res) => {
     }
 });
 
+
+// Helper to calculate percentage and grade
+const calculateStats = (marks) => {
+    if (!marks || marks.length === 0) return { percentage: 0, grade: 'F' };
+
+    // Convert Map or Object to array of values
+    const values = marks instanceof Map ? Array.from(marks.values()) : Object.values(marks);
+    if (values.length === 0) return { percentage: 0, grade: 'F' };
+
+    const total = values.reduce((a, b) => a + Number(b), 0);
+    // Assuming each subject is out of 100
+    const percentage = (total / values.length).toFixed(2);
+
+    let grade = 'F';
+    if (percentage >= 90) grade = 'A+';
+    else if (percentage >= 80) grade = 'A';
+    else if (percentage >= 70) grade = 'B';
+    else if (percentage >= 60) grade = 'C';
+    else if (percentage >= 50) grade = 'D';
+
+    return { percentage, grade };
+};
+
 // Add Student
 app.post('/api/students', async (req, res) => {
     try {
@@ -147,7 +170,9 @@ app.post('/api/students', async (req, res) => {
         const lastStudent = await Student.findOne().sort({ rollNumber: -1 });
         const rollNumber = lastStudent ? lastStudent.rollNumber + 1 : 1;
 
-        const newStudent = new Student({ rollNumber, name, course, marks });
+        const { percentage, grade } = calculateStats(marks);
+
+        const newStudent = new Student({ rollNumber, name, course, marks, percentage, grade });
         await newStudent.save();
         res.status(201).json(newStudent);
     } catch (err) {
@@ -159,10 +184,19 @@ app.post('/api/students', async (req, res) => {
 app.put('/api/students/:rollNumber', async (req, res) => {
     try {
         const { rollNumber } = req.params;
-        const updated = await Student.findOneAndUpdate({ rollNumber }, req.body, { new: true });
+        const { name, course, marks } = req.body;
+
+        const { percentage, grade } = calculateStats(marks);
+
+        const updated = await Student.findOneAndUpdate(
+            { rollNumber },
+            { name, course, marks, percentage, grade },
+            { new: true }
+        );
         if (updated) res.json(updated);
         else res.status(404).json({ error: "Student not found" });
     } catch (err) {
+
         res.status(400).json({ error: err.message });
     }
 });

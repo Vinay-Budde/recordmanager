@@ -15,6 +15,25 @@ const getAllSubjects = (students) => {
     return Array.from(subjects).sort();
 };
 
+const calculateClientSideStats = (marks) => {
+    if (!marks) return { percentage: '0.00', grade: 'F' };
+    const values = Object.values(marks);
+    if (values.length === 0) return { percentage: '0.00', grade: 'F' };
+
+    const total = values.reduce((a, b) => a + Number(b), 0);
+    const percentage = (total / values.length).toFixed(2);
+
+    let grade = 'F';
+    const pVal = parseFloat(percentage);
+    if (pVal >= 90) grade = 'A+';
+    else if (pVal >= 80) grade = 'A';
+    else if (pVal >= 70) grade = 'B';
+    else if (pVal >= 60) grade = 'C';
+    else if (pVal >= 50) grade = 'D';
+
+    return { percentage, grade };
+};
+
 // Helper to download CSV
 const downloadCSV = (students, allSubjects) => {
     if (!students || students.length === 0) {
@@ -75,7 +94,14 @@ export default function StudentList({ students, fetchStudents, onEdit }) {
     };
 
     const processedStudents = useMemo(() => {
-        let items = [...students];
+        let items = students.map(s => {
+            // Calculate if missing
+            if (!s.percentage || !s.grade) {
+                const { percentage, grade } = calculateClientSideStats(s.marks);
+                return { ...s, percentage: s.percentage || percentage, grade: s.grade || grade };
+            }
+            return s;
+        });
 
         // 1. Filter
         if (searchTerm) {
@@ -223,15 +249,14 @@ export default function StudentList({ students, fetchStudents, onEdit }) {
                                         </td>
                                     ))}
                                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                                        {student.percentage}%
+                                        {student.percentage || 0}%
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <span className={`px-2 py-1 text-xs font-bold rounded-full 
                      ${['A', 'A+'].includes(student.grade) ? 'bg-green-100 text-green-800' :
                                                 student.grade === 'B' ? 'bg-teal-100 text-teal-800' :
-                                                    student.grade === 'C' ? 'bg-yellow-100 text-yellow-800' :
-                                                        student.grade === 'F' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
-                                            {student.grade}
+                                                    student.grade === 'F' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                                            {student.grade || '-'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">

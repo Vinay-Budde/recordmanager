@@ -11,6 +11,26 @@ import Settings from './Settings';
 
 const API_URL = 'http://localhost:5000/api/students';
 
+// Helper to calculate percentage and grade
+const calculateStats = (marks) => {
+  if (!marks) return { percentage: '0.00', grade: 'F' };
+  const values = Object.values(marks);
+  if (values.length === 0) return { percentage: '0.00', grade: 'F' };
+
+  const total = values.reduce((a, b) => a + Number(b), 0);
+  const percentage = (total / values.length).toFixed(2);
+
+  let grade = 'F';
+  const pVal = parseFloat(percentage);
+  if (pVal >= 90) grade = 'A+';
+  else if (pVal >= 80) grade = 'A';
+  else if (pVal >= 70) grade = 'B';
+  else if (pVal >= 60) grade = 'C';
+  else if (pVal >= 50) grade = 'D';
+
+  return { percentage, grade };
+};
+
 function App() {
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -82,7 +102,14 @@ function App() {
   const fetchStudents = async () => {
     try {
       const res = await axios.get(API_URL);
-      setStudents(res.data);
+      // Pre-calculate stats for consistency if missing
+      const augmented = res.data.map(s => {
+        if (!s.percentage || !s.grade) {
+          return { ...s, ...calculateStats(s.marks) };
+        }
+        return s;
+      });
+      setStudents(augmented);
     } catch (err) {
       console.error("Failed to fetch students", err);
     }
@@ -158,6 +185,14 @@ function App() {
 
   const renderContent = () => {
     if (activeTab === 'dashboard') {
+      const avgPerformance = students.length > 0
+        ? (students.reduce((acc, curr) => acc + (parseFloat(curr.percentage) || 0), 0) / students.length).toFixed(2) + '%'
+        : '0.00%';
+
+      const topPerformer = students.length > 0
+        ? students.reduce((max, curr) => (parseFloat(max.percentage) || 0) > (parseFloat(curr.percentage) || 0) ? max : curr).name
+        : '-';
+
       return (
         <>
           {/* Stats Grid */}
@@ -176,9 +211,7 @@ function App() {
               </div>
               <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Average Performance</p>
               <p className="mt-2 text-3xl font-bold text-blue-600">
-                {students.length > 0
-                  ? (students.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / students.length).toFixed(2) + '%'
-                  : '0.00%'}
+                {avgPerformance}
               </p>
             </div>
 
@@ -188,9 +221,7 @@ function App() {
               </div>
               <p className="text-sm font-medium text-gray-500 uppercase tracking-wide">Top Performer</p>
               <p className="mt-2 text-xl font-bold text-amber-600 truncate">
-                {students.length > 0
-                  ? students.reduce((max, curr) => (max.percentage || 0) > (curr.percentage || 0) ? max : curr).name
-                  : '-'}
+                {topPerformer}
               </p>
             </div>
           </div>
