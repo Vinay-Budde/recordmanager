@@ -4,7 +4,10 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require("./config/db");
 const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const auth = require('./middleware/auth');
 
 // Models
 const User = require('./models/User');
@@ -43,7 +46,25 @@ app.post('/api/auth/login', async (req, res) => {
             password
         }); // In real app, compare hash
         if (user) {
-            res.json({ message: 'Login successful', user: { name: user.username, email: user.email, role: user.role } });
+            // Create JWT Payload
+            const payload = {
+                user: {
+                    id: user.id
+                }
+            };
+
+            jwt.sign(
+                payload,
+                process.env.JWT_SECRET || 'secret',
+                { expiresIn: 360000 }, // Sets a long expiration
+                (err, token) => {
+                    if (err) throw err;
+                    res.json({
+                        token,
+                        user: { name: user.username, email: user.email, role: user.role }
+                    });
+                }
+            );
         } else {
             res.status(401).json({ error: 'Invalid credentials' });
         }
@@ -129,9 +150,11 @@ app.put('/api/auth/profile/:currentUsername', async (req, res) => {
 // --- Student Routes ---
 
 // Get All
-app.get('/api/students', async (req, res) => {
+// Get All (Protected)
+app.get('/api/students', auth, async (req, res) => {
     try {
-        const students = await Student.find();
+        // Find students only for this user
+        const students = await Student.find({ user: req.user.id });
         res.json(students);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -162,17 +185,27 @@ const calculateStats = (marks) => {
 };
 
 // Add Student
-app.post('/api/students', async (req, res) => {
+// Add Student (Protected)
+app.post('/api/students', auth, async (req, res) => {
     try {
         const { name, course, marks } = req.body;
 
-        // Auto-increment logic using aggregation
-        const lastStudent = await Student.findOne().sort({ rollNumber: -1 });
+        // Auto-increment logic PER USER
+        const lastStudent = await Student.findOne({ user: req.user.id }).sort({ rollNumber: -1 });
         const rollNumber = lastStudent ? lastStudent.rollNumber + 1 : 1;
 
         const { percentage, grade } = calculateStats(marks);
 
-        const newStudent = new Student({ rollNumber, name, course, marks, percentage, grade });
+        const newStudent = new Student({
+            roomNumber: rollNumber, // Just in case passing it explicitly, though logic above handles it
+            rollNumber,
+            name,
+            course,
+            marks,
+            percentage,
+            grade,
+            user: req.user.id // Associate with logged in user
+        });
         await newStudent.save();
         res.status(201).json(newStudent);
     } catch (err) {
@@ -181,31 +214,34 @@ app.post('/api/students', async (req, res) => {
 });
 
 // Update Student
-app.put('/api/students/:rollNumber', async (req, res) => {
+// Update Student (Protected)
+app.put('/api/students/:rollNumber', auth, async (req, res) => {
     try {
         const { rollNumber } = req.params;
         const { name, course, marks } = req.body;
 
         const { percentage, grade } = calculateStats(marks);
 
+        // Find by rollNumber AND user to ensure ownership
         const updated = await Student.findOneAndUpdate(
-            { rollNumber },
+            { rollNumber, user: req.user.id },
             { name, course, marks, percentage, grade },
             { new: true }
         );
         if (updated) res.json(updated);
         else res.status(404).json({ error: "Student not found" });
     } catch (err) {
-
         res.status(400).json({ error: err.message });
     }
 });
 
 // Delete Student
-app.delete('/api/students/:rollNumber', async (req, res) => {
+// Delete Student (Protected)
+app.delete('/api/students/:rollNumber', auth, async (req, res) => {
     try {
         const { rollNumber } = req.params;
-        const deleted = await Student.findOneAndDelete({ rollNumber });
+        // Ensure own user
+        const deleted = await Student.findOneAndDelete({ rollNumber, user: req.user.id });
         if (deleted) res.json({ message: "Student deleted" });
         else res.status(404).json({ error: "Student not found" });
     } catch (err) {

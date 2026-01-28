@@ -36,11 +36,19 @@ const calculateStats = (marks) => {
 function App() {
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem('user');
+    return !!localStorage.getItem('token');
   });
   const [showLanding, setShowLanding] = useState(() => {
-    return !localStorage.getItem('user');
+    return !localStorage.getItem('token');
   });
+
+  // Set Auth Header on Load
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, []);
 
   const [authMode, setAuthMode] = useState('login'); // 'login', 'register', 'forgot'
   const [resetToken, setResetToken] = useState(null);
@@ -123,8 +131,13 @@ function App() {
     }
   }, [isAuthenticated]);
 
-  const handleLogin = (user) => {
+  const handleLogin = (data) => {
+    const { token, user } = data;
     setIsAuthenticated(true);
+
+    localStorage.setItem('token', token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
     if (user) {
       const profile = {
         name: user.name || 'Admin',
@@ -138,6 +151,8 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    delete axios.defaults.headers.common['Authorization'];
     setIsAuthenticated(false);
     setActiveTab('dashboard');
   };

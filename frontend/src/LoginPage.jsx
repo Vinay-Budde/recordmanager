@@ -18,7 +18,7 @@ export default function LoginPage({ onLogin, onSwitchToRegister, onForgot }) {
         setError('');
         try {
             const res = await axios.post(API_URL, { username, password });
-            onLogin(res.data.user); // Pass user data up
+            onLogin(res.data); // Pass { token, user } data up
         } catch (err) {
             setError(err.response?.data?.error || "Invalid credentials");
         }
