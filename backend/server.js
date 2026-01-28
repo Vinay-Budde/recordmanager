@@ -18,7 +18,17 @@ const app = express();
 // Connect Database
 connectDB();
 
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:5173",
+        "https://recordmanager.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+}));
+
+app.options("*", cors()); // 🔥 IMPORTANT for preflight
 app.use(express.json()); // Same as bodyParser.json() which express.json() replaces in newer versions
 
 // --- Auth Routes ---
