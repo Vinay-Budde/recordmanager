@@ -4,7 +4,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const connectDB = require("./config/db");
 const nodemailer = require('nodemailer');
-const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const auth = require('./middleware/auth');
