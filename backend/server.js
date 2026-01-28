@@ -28,7 +28,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // 🔥 IMPORTANT for preflight
+app.options("(.*)", cors(corsOptions)); // 🔥 IMPORTANT for preflight
 
 
 app.use(express.json()); // Same as bodyParser.json() which express.json() replaces in newer versions
