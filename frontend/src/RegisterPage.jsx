@@ -215,7 +215,7 @@ export default function RegisterPage({ onRegisterSuccess, onSwitchToLogin }) {
                         </div>
 
                         <div className="text-center">
-                            <button onClick={onSwitchToLogin} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                            <button type="button" onClick={onSwitchToLogin} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
                                 Sign in to your account
                             </button>
                         </div>

@@ -158,7 +158,7 @@ export default function LoginPage({ onLogin, onSwitchToRegister, onForgot }) {
                         </div>
 
                         <div className="text-center">
-                            <button onClick={onSwitchToRegister} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                            <button type="button" onClick={onSwitchToRegister} className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
                                 Create an account
                             </button>
                         </div>
