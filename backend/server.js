@@ -209,7 +209,6 @@ app.post('/api/students', auth, async (req, res) => {
         const { percentage, grade } = calculateStats(marks);
 
         const newStudent = new Student({
-            roomNumber: rollNumber, // Just in case passing it explicitly, though logic above handles it
             rollNumber,
             name,
             course,

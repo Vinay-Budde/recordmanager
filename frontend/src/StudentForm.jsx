@@ -99,7 +99,8 @@ export default function StudentForm({ selectedStudent, onSuccess, onCancel }) {
                 marks: [{ subject: '', score: '' }]
             });
         } catch (err) {
-            setError(err.response?.data || "An error occurred. If ID exists, try editing instead.");
+            const errorMsg = err.response?.data?.error || err.response?.data || "An error occurred. If ID exists, try editing instead.";
+            setError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
             console.error(err);
         }
     };
