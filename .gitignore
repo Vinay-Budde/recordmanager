@@ -6,6 +6,8 @@ mongodb_data/
 
 # Environment variables
 .env
+backend/.env
+frontend/.env
 
 # Build outputs
 dist/
