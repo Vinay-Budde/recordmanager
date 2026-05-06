@@ -100,7 +100,9 @@ function App() {
         username: editFormData.name,
         email: editFormData.email
       });
-      setAdminProfile(res.data.user);
+      const updatedUser = res.data.user;
+      setAdminProfile(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       setIsEditingProfile(false);
       alert("Profile updated successfully!");
     } catch (err) {
@@ -275,7 +277,7 @@ function App() {
             <div className="relative flex justify-between items-end -mt-12 mb-6">
               <div className="h-24 w-24 rounded-full bg-white p-1 ring-4 ring-white">
                 <div className="h-full w-full rounded-full bg-indigo-500 flex items-center justify-center text-3xl text-white font-bold">
-                  {adminProfile.name ? adminProfile.name.charAt(0) : 'A'}
+                  {(adminProfile.name || 'A').charAt(0).toUpperCase()}
                 </div>
               </div>
               <div className="flex space-x-3">
@@ -368,7 +370,7 @@ function App() {
             onClick={() => setActiveTab('profile')}
           >
             <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-white">
-              {adminProfile.name.charAt(0)}
+              {(adminProfile.name || 'A').charAt(0).toUpperCase()}
             </div>
             <div>
               <p className="text-sm font-medium">{adminProfile.name}</p>
@@ -384,6 +386,12 @@ function App() {
           <h2 className={`text-xl font-semibold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
             {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
           </h2>
+          <button
+            onClick={handleLogout}
+            className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors px-3 py-1 rounded-lg hover:bg-red-50"
+          >
+            Logout
+          </button>
         </header>
 
         <main className="flex-1 p-8 overflow-y-auto">

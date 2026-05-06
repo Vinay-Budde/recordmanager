@@ -14,3 +14,17 @@ build/
 # IDE files
 .vscode/
 .idea/
+
+# Java compiled files
+*.class
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Lock files (keep package-lock.json but not yarn.lock if not used)
+yarn.lock
